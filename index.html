@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>qart</title>
+  <link rel="stylesheet" href="/src/styles.css">
+</head>
+<body>
+  <div class="nav-float">
+    <span id="ws-status" class="ws-status" title="Connecting…" aria-hidden="true"></span>
+    <button id="nav-toggle" class="nav-toggle" aria-label="Menu" aria-expanded="false" aria-controls="nav-menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+  <nav id="nav-menu" class="site-nav" aria-label="Main navigation" hidden>
+    <div id="nav-slider-slot"></div>
+    <a href="#draw"   class="nav-link" data-page="draw">Draw</a>
+    <a href="#mosaic" class="nav-link" data-page="mosaic">Mosaic</a>
+    <a href="#qr"     class="nav-link" data-page="qr">QR Code</a>
+    <a href="#admin"  class="nav-link" data-page="admin">Setup</a>
+  </nav>
+  <main id="main" class="app-main" tabindex="-1"></main>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
