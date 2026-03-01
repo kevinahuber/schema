@@ -123,7 +123,7 @@ export function renderMosaic(container) {
         if (drawing) {
           const drawingImg = document.createElement('img');
           drawingImg.className = 'mosaic-slot-drawing mosaic-drawing-hidden';
-          drawingImg.src = drawing.dataUrl;
+          drawingImg.src = drawing.url || drawing.dataUrl;
           drawingImg.alt = `Drawing for slot ${col + 1},${row + 1}`;
           drawingImg.loading = 'lazy';
           drawingImg.style.transitionDuration = `${0.6 + Math.random() * 1.8}s`;
@@ -156,13 +156,13 @@ export function renderMosaic(container) {
 
       // Overflow drawings
       if (overflow.length > 0) {
-        overflow.slice().reverse().forEach(({ dataUrl: dUrl, createdAt }) => {
+        overflow.slice().reverse().forEach(d => {
           const item = document.createElement('div');
           item.className = 'mosaic-item';
           item.setAttribute('role', 'listitem');
           const img2 = document.createElement('img');
-          img2.src = dUrl;
-          img2.alt = `Drawing from ${new Date(createdAt).toLocaleTimeString()}`;
+          img2.src = d.url || d.dataUrl;
+          img2.alt = `Drawing from ${new Date(d.createdAt * 1000).toLocaleTimeString()}`;
           img2.loading = 'lazy';
           img2.className = 'mosaic-img';
           item.appendChild(img2);
@@ -180,13 +180,13 @@ export function renderMosaic(container) {
       sliderBar.hidden = true;
       shuffleOrder = [];
 
-      drawings.slice().reverse().forEach(({ dataUrl, createdAt }) => {
+      drawings.slice().reverse().forEach(d => {
         const item = document.createElement('div');
         item.className = 'mosaic-item';
         item.setAttribute('role', 'listitem');
         const img2 = document.createElement('img');
-        img2.src = dataUrl;
-        img2.alt = `Drawing from ${new Date(createdAt).toLocaleTimeString()}`;
+        img2.src = d.url || d.dataUrl;
+        img2.alt = `Drawing from ${new Date(d.createdAt * 1000).toLocaleTimeString()}`;
         img2.loading = 'lazy';
         img2.className = 'mosaic-img';
         item.appendChild(img2);
@@ -218,6 +218,7 @@ export function renderMosaic(container) {
   window.addEventListener('qart:new-drawing', onUpdate);
   window.addEventListener('qart:cleared', onUpdate);
   window.addEventListener('qart:image-set', onUpdate);
+  window.addEventListener('qart:drawing-deleted', onUpdate);
 
   // Re-layout on resize so the grid always fills the viewport correctly
   const ro = new ResizeObserver(renderGrid);
@@ -231,6 +232,7 @@ export function renderMosaic(container) {
     window.removeEventListener('qart:new-drawing', onUpdate);
     window.removeEventListener('qart:cleared', onUpdate);
     window.removeEventListener('qart:image-set', onUpdate);
+    window.removeEventListener('qart:drawing-deleted', onUpdate);
     const slot = document.getElementById('nav-slider-slot');
     if (slot && slot.contains(sliderBar)) slot.removeChild(sliderBar);
     container.innerHTML = '';

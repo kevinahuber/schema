@@ -1,11 +1,22 @@
+const port = process.env.PORT || 3000;
+const target = `http://localhost:${port}`;
+
 export default {
   server: {
     proxy: {
-      // In dev, Vite proxies /ws to the Node server so the WS URL
-      // works the same in both dev and production.
       '/ws': {
-        target: `ws://localhost:${process.env.PORT || 3000}`,
+        target: target.replace('http', 'ws'),
         ws: true,
+      },
+      '/api': {
+        target,
+      },
+      '/data': {
+        target,
+      },
+      // Mosaic PNG export — only proxy .png under /s/
+      '^/s/.+/mosaic\\.png': {
+        target,
       },
     },
   },

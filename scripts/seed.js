@@ -1,9 +1,15 @@
 // One-off seeder: fills empty slots with generated drawings that use each
 // slot's extracted color palette and look like actual freehand sketches.
-// Usage: node scripts/seed.js [--clear]
+// Usage: node scripts/seed.js <slug> [--clear]
 
 import { createCanvas, loadImage } from 'canvas';
 import WebSocket from 'ws';
+
+const slug = process.argv[2];
+if (!slug || slug.startsWith('--')) {
+  console.error('Usage: node scripts/seed.js <slug> [--clear]');
+  process.exit(1);
+}
 
 const CLEAR_FIRST = process.argv.includes('--clear');
 
@@ -42,8 +48,6 @@ function pickDistinct(pixels, count) {
   return selected;
 }
 
-// Returns { palette: string[], weights: number[] } where weights sum to 1.
-// Weights reflect how much of each color appears in the slot region.
 async function extractSlotPalette(img, slotIndex, cols, rows, paletteSize = 5) {
   const slotW = img.width / cols;
   const slotH = img.height / rows;
@@ -59,7 +63,6 @@ async function extractSlotPalette(img, slotIndex, cols, rows, paletteSize = 5) {
 
   const selected = pickDistinct(pixels, paletteSize);
 
-  // Count how many pixels are closest to each selected color
   const counts = new Array(selected.length).fill(0);
   for (const px of pixels) {
     let best = 0, bestDist = Infinity;
@@ -73,9 +76,7 @@ async function extractSlotPalette(img, slotIndex, cols, rows, paletteSize = 5) {
   const total = pixels.length || 1;
   const weights = counts.map(c => c / total);
   const palette = [...selected.map(toHex), '#ffffff'];
-  // Add a near-zero weight for the eraser white
   weights.push(0.02);
-  // Renormalize
   const wsum = weights.reduce((a, b) => a + b, 0);
   return { palette, weights: weights.map(w => w / wsum) };
 }
@@ -100,13 +101,11 @@ async function makeDrawingAsync(w, h, palette, weights) {
   const canvas = createCanvas(w, h);
   const ctx = canvas.getContext('2d');
 
-  // Filter out eraser white for strokes; keep weights in sync
   const strokeColors = [], strokeWeights = [];
   palette.forEach((c, i) => {
     if (c !== '#ffffff') { strokeColors.push(c); strokeWeights.push(weights?.[i] ?? 1); }
   });
   if (strokeColors.length === 0) { strokeColors.push('#222222'); strokeWeights.push(1); }
-  // Renormalize
   const wsum = strokeWeights.reduce((a, b) => a + b, 0);
   strokeWeights.forEach((_, i) => strokeWeights[i] /= wsum);
 
@@ -116,17 +115,11 @@ async function makeDrawingAsync(w, h, palette, weights) {
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
 
-  // ── Strokes: a mix of techniques ─────────────────────────────────────────
-
   const techniques = [squiggle, scribbleFill, boldBlobs, hatching, burstLines];
   const chosen = techniques.sort(() => Math.random() - 0.5).slice(0, rndInt(2, 4));
   for (const fn of chosen) fn(ctx, w, h, pickColor);
 
   return canvas.toDataURL('image/png');
-}
-
-function makeDrawing(w, h, palette, weights) {
-  return makeDrawingAsync(w, h, palette, weights);
 }
 
 function squiggle(ctx, w, h, pickColor) {
@@ -135,7 +128,6 @@ function squiggle(ctx, w, h, pickColor) {
     ctx.beginPath();
     ctx.strokeStyle = pickColor();
     ctx.lineWidth = 6;
-
     let x = rnd(0, w), y = rnd(0, h);
     ctx.moveTo(x, y);
     const steps = rndInt(8, 20);
@@ -153,13 +145,11 @@ function squiggle(ctx, w, h, pickColor) {
 function scribbleFill(ctx, w, h, pickColor) {
   ctx.strokeStyle = pickColor();
   ctx.lineWidth = 6;
-
   const angle = rnd(0, Math.PI);
   const spacing = rnd(4, 10);
   const cos = Math.cos(angle + Math.PI / 2);
   const sin = Math.sin(angle + Math.PI / 2);
   const diag = Math.hypot(w, h);
-
   for (let d = -diag / 2; d < diag / 2; d += spacing) {
     const cx = w / 2 + cos * d, cy = h / 2 + sin * d;
     const dx = Math.cos(angle) * diag, dy = Math.sin(angle) * diag;
@@ -184,19 +174,16 @@ function boldBlobs(ctx, w, h, pickColor) {
 function hatching(ctx, w, h, pickColor) {
   ctx.strokeStyle = pickColor();
   ctx.lineWidth = 6;
-
   const cx = rnd(0.2 * w, 0.8 * w), cy = rnd(0.2 * h, 0.8 * h);
   const bw = rnd(w * 0.2, w * 0.6), bh = rnd(h * 0.2, h * 0.6);
   const angle = rnd(0, Math.PI);
   const spacing = rnd(3, 7);
   const len = Math.hypot(bw, bh);
   const cos = Math.cos(angle + Math.PI / 2), sin = Math.sin(angle + Math.PI / 2);
-
   ctx.save();
   ctx.beginPath();
   ctx.rect(cx - bw / 2, cy - bh / 2, bw, bh);
   ctx.clip();
-
   for (let d = -len / 2; d < len / 2; d += spacing) {
     const ox = cos * d + cx, oy = sin * d + cy;
     const dx = Math.cos(angle) * len / 2, dy = Math.sin(angle) * len / 2;
@@ -225,51 +212,54 @@ function burstLines(ctx, w, h, pickColor) {
 
 // ── WebSocket client ──────────────────────────────────────────────────────────
 
-const ws = new WebSocket('ws://localhost:3000/ws');
-ws.on('open', () => console.log('connected'));
-
-const COLS = 16, ROWS = 16;
+const ws = new WebSocket(`ws://localhost:3000/ws/${slug}`);
+ws.on('open', () => console.log(`connected to session: ${slug}`));
 
 ws.on('message', async raw => {
   const msg = JSON.parse(raw);
   if (msg.type !== 'init') return;
 
-  const { image } = msg;
-  console.log(`init: image: ${image ? `${image.cols}×${image.rows}` : 'none'}`);
+  const { session, drawings } = msg;
+  const cols = session.cols;
+  const rows = session.rows;
+  console.log(`init: ${cols}x${rows} grid, ${drawings.length} existing drawing(s)`);
 
-  // Save current reference image before overwriting
+  // Load reference image if available
   let refImg = null;
-  let srcCols = COLS, srcRows = ROWS;
-  if (image?.dataUrl) {
-    refImg = await loadImage(image.dataUrl);
-    srcCols = image.cols;
-    srcRows = image.rows;
-    console.log(`saved reference image: ${refImg.width}×${refImg.height} (${srcCols}×${srcRows} grid)`);
+  if (session.imageUrl) {
+    refImg = await loadImage(`http://localhost:3000${session.imageUrl}`);
+    console.log(`loaded reference image: ${refImg.width}x${refImg.height}`);
   }
 
-  // Switch to a plain 16×16 grid with no reference image
-  ws.send(JSON.stringify({ type: 'set-grid', cols: COLS, rows: ROWS }));
-  await new Promise(r => setTimeout(r, 300));
+  if (CLEAR_FIRST) {
+    // Note: clear requires admin PIN which the seed script doesn't have.
+    // The seed script adds drawings to existing state without clearing.
+    console.log('Warning: --clear requires admin PIN, skipping clear');
+  }
 
-  const W = 300, H = 300; // square slots for imageless grid
-  const total = COLS * ROWS;
-  console.log(`filling ${total} slot(s)`);
+  const W = 300, H = 300;
+  const total = cols * rows;
+  const existingSlots = new Set(drawings.filter(d => d.slotIndex != null).map(d => d.slotIndex));
+  console.log(`filling empty slots (${total - existingSlots.size} available)`);
 
   const blank = new Set();
-  while (blank.size < 5) blank.add(Math.floor(Math.random() * total));
+  while (blank.size < 5) {
+    const s = Math.floor(Math.random() * total);
+    if (!existingSlots.has(s)) blank.add(s);
+    if (blank.size + existingSlots.size >= total) break;
+  }
 
   for (let i = 0; i < total; i++) {
-    if (blank.has(i)) { process.stdout.write(`\r  ${i + 1}/${total}`); continue; }
+    if (existingSlots.has(i) || blank.has(i)) {
+      process.stdout.write(`\r  ${i + 1}/${total}`);
+      continue;
+    }
+
     let palette = ['#e05050', '#50a050', '#5070e0', '#e0a030', '#ffffff'];
     let weights = null;
 
     if (refImg) {
-      const col = i % COLS, row = Math.floor(i / COLS);
-      const srcCol = Math.floor(col * srcCols / COLS);
-      const srcRow = Math.floor(row * srcRows / ROWS);
-      const srcSlot = srcRow * srcCols + srcCol;
-
-      ({ palette, weights } = await extractSlotPalette(refImg, srcSlot, srcCols, srcRows));
+      ({ palette, weights } = await extractSlotPalette(refImg, i, cols, rows));
     }
 
     const dataUrl = await makeDrawingAsync(W, H, palette, weights);

@@ -95,7 +95,7 @@ export function renderDraw(container) {
         const icon = document.createElement('span');
         icon.className = 'palette-vial-icon';
         icon.setAttribute('aria-hidden', 'true');
-        icon.textContent = '✕';
+        icon.textContent = '\u2715';
         vial.appendChild(icon);
       }
 
@@ -226,7 +226,7 @@ export function renderDraw(container) {
     }
 
     buildPalette(['#cccccc', '#aaaaaa', '#888888', '#555555', '#222222', '#ffffff']);
-    status.textContent = 'Getting your palette…';
+    status.textContent = 'Getting your palette\u2026';
     requestSlot();
   }
 
@@ -237,7 +237,7 @@ export function renderDraw(container) {
     const img = getImage();
     if (!img || assignedSlot == null) {
       buildPalette(randomPalette(6));
-      status.textContent = assignedSlot == null ? 'All slots filled — free draw!' : '';
+      status.textContent = assignedSlot == null ? 'All slots filled \u2014 free draw!' : '';
       return;
     }
 

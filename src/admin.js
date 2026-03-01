@@ -1,28 +1,108 @@
-import { setImage, getImage, clearDrawings } from './store.js';
+import { setImage, getImage, getSession, getDrawings, clearDrawings, deleteDrawing, getAdminPin, setAdminPin, getSlug } from './store.js';
 import { seedMosaic } from './seed.js';
 
 export function renderAdmin(container) {
   const wrap = document.createElement('div');
   wrap.className = 'page-admin';
+  container.appendChild(wrap);
+
+  const slug = getSlug();
+  const pin = getAdminPin();
+
+  // ── PIN gate ────────────────────────────────────────────────────────────────
+
+  if (!pin) {
+    renderPinGate(wrap, () => {
+      container.innerHTML = '';
+      renderAdmin(container);
+    });
+    return () => { container.innerHTML = ''; };
+  }
+
+  // ── Admin content ───────────────────────────────────────────────────────────
 
   const h1 = document.createElement('h1');
   h1.className = 'page-title';
   h1.textContent = 'Setup';
   wrap.appendChild(h1);
 
-  // Current image status
-  const currentImg = getImage();
-  const currentInfo = document.createElement('p');
-  currentInfo.className = 'admin-current';
-  currentInfo.textContent = currentImg
-    ? `Active: ${currentImg.cols}×${currentImg.rows} grid · ${currentImg.cols * currentImg.rows} slots`
-    : 'No reference image set. Visitors get random palettes.';
-  wrap.appendChild(currentInfo);
+  // Session info
+  const sessionInfo = document.createElement('div');
+  sessionInfo.className = 'admin-session-info';
+  function updateSessionInfo() {
+    const session = getSession();
+    const drawings = getDrawings();
+    sessionInfo.innerHTML = '';
+
+    if (session?.name) {
+      const name = document.createElement('p');
+      name.className = 'admin-session-name';
+      name.textContent = session.name;
+      sessionInfo.appendChild(name);
+    }
+
+    const details = document.createElement('p');
+    details.className = 'admin-current';
+    const img = getImage();
+    details.textContent = img
+      ? `${img.cols}\u00d7${img.rows} grid \u00b7 ${img.cols * img.rows} slots \u00b7 ${drawings.length} drawing(s)`
+      : `No reference image set. ${drawings.length} drawing(s).`;
+    sessionInfo.appendChild(details);
+  }
+  updateSessionInfo();
+  wrap.appendChild(sessionInfo);
+
+  // ── Shareable URLs ──────────────────────────────────────────────────────────
+
+  const linksSection = document.createElement('div');
+  linksSection.className = 'admin-links';
+
+  const linksHeading = document.createElement('h2');
+  linksHeading.className = 'admin-section-heading';
+  linksHeading.textContent = 'Share';
+  linksSection.appendChild(linksHeading);
+
+  const baseUrl = `${location.origin}/s/${slug}`;
+  const links = [
+    { label: 'Draw', url: `${baseUrl}#draw` },
+    { label: 'Mosaic', url: `${baseUrl}#mosaic` },
+    { label: 'QR Code', url: `${baseUrl}#qr` },
+    { label: 'Export PNG', url: `${baseUrl}/mosaic.png` },
+  ];
+
+  links.forEach(({ label, url }) => {
+    const row = document.createElement('div');
+    row.className = 'admin-link-row';
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.textContent = label;
+    a.className = 'admin-link';
+    a.target = label === 'Export PNG' ? '_blank' : '_self';
+    row.appendChild(a);
+
+    const copyBtn = document.createElement('button');
+    copyBtn.type = 'button';
+    copyBtn.className = 'btn btn--sm btn--ghost';
+    copyBtn.textContent = 'Copy';
+    copyBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(url).then(() => {
+        copyBtn.textContent = 'Copied!';
+        setTimeout(() => { copyBtn.textContent = 'Copy'; }, 1500);
+      });
+    });
+    row.appendChild(copyBtn);
+
+    linksSection.appendChild(row);
+  });
+
+  wrap.appendChild(linksSection);
+
+  // ── Image / Grid form ─────────────────────────────────────────────────────
 
   const form = document.createElement('div');
   form.className = 'admin-form';
 
-  // Grid size
   const gridLabel = document.createElement('span');
   gridLabel.className = 'admin-label';
   gridLabel.textContent = 'Grid size';
@@ -60,7 +140,7 @@ export function renderAdmin(container) {
 
   const timesSpan = document.createElement('span');
   timesSpan.className = 'admin-grid-sep';
-  timesSpan.textContent = '×';
+  timesSpan.textContent = '\u00d7';
   const eqSpan = document.createElement('span');
   eqSpan.className = 'admin-grid-sep';
   eqSpan.textContent = '=';
@@ -120,11 +200,11 @@ export function renderAdmin(container) {
   submitBtn.disabled = true;
   form.appendChild(submitBtn);
 
-  const status = document.createElement('p');
-  status.className = 'draw-status';
-  status.setAttribute('role', 'status');
-  status.setAttribute('aria-live', 'polite');
-  form.appendChild(status);
+  const formStatus = document.createElement('p');
+  formStatus.className = 'draw-status';
+  formStatus.setAttribute('role', 'status');
+  formStatus.setAttribute('aria-live', 'polite');
+  form.appendChild(formStatus);
 
   wrap.appendChild(form);
 
@@ -172,7 +252,61 @@ export function renderAdmin(container) {
 
   wrap.appendChild(seedSection);
 
-  // ── Clear section ────────────────────────────────────────────────────────────
+  // ── Drawings moderation ─────────────────────────────────────────────────────
+
+  const drawingsSection = document.createElement('div');
+  drawingsSection.className = 'admin-seed-section';
+
+  const drawingsHeading = document.createElement('h2');
+  drawingsHeading.className = 'admin-section-heading';
+  drawingsHeading.textContent = 'Drawings';
+  drawingsSection.appendChild(drawingsHeading);
+
+  const drawingsGrid = document.createElement('div');
+  drawingsGrid.className = 'admin-drawings-grid';
+  drawingsSection.appendChild(drawingsGrid);
+
+  function renderDrawingsGrid() {
+    const drawings = getDrawings();
+    drawingsGrid.innerHTML = '';
+
+    if (drawings.length === 0) {
+      const emptyMsg = document.createElement('p');
+      emptyMsg.className = 'admin-section-desc';
+      emptyMsg.textContent = 'No drawings yet.';
+      drawingsGrid.appendChild(emptyMsg);
+      return;
+    }
+
+    drawings.forEach(d => {
+      const item = document.createElement('div');
+      item.className = 'admin-drawing-item';
+
+      const thumb = document.createElement('img');
+      thumb.src = d.url || d.dataUrl;
+      thumb.alt = d.slotIndex != null ? `Slot ${d.slotIndex}` : 'Free draw';
+      thumb.className = 'admin-drawing-thumb';
+      thumb.loading = 'lazy';
+      item.appendChild(thumb);
+
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.className = 'admin-drawing-delete';
+      delBtn.setAttribute('aria-label', `Delete drawing${d.slotIndex != null ? ` from slot ${d.slotIndex}` : ''}`);
+      delBtn.textContent = '\u00d7';
+      delBtn.addEventListener('click', () => {
+        deleteDrawing(d.id);
+      });
+      item.appendChild(delBtn);
+
+      drawingsGrid.appendChild(item);
+    });
+  }
+
+  renderDrawingsGrid();
+  wrap.appendChild(drawingsSection);
+
+  // ── Clear section ──────────────────────────────────────────────────────────
 
   const clearSection = document.createElement('div');
   clearSection.className = 'admin-seed-section';
@@ -197,7 +331,8 @@ export function renderAdmin(container) {
   clearSection.appendChild(clearBtn);
 
   wrap.appendChild(clearSection);
-  container.appendChild(wrap);
+
+  // ── Preview / form logic ──────────────────────────────────────────────────
 
   let processedDataUrl = null;
   let processedWidth = 0;
@@ -253,8 +388,7 @@ export function renderAdmin(container) {
     if (!processedDataUrl) return;
     const { cols, rows } = getGrid();
     setImage(processedDataUrl, cols, rows, processedWidth, processedHeight);
-    status.textContent = `Set! ${cols}×${rows} grid, ${cols * rows} slots. All previous drawings cleared.`;
-    currentInfo.textContent = `Active: ${cols}×${rows} grid · ${cols * rows} slots`;
+    formStatus.textContent = `Set! ${cols}\u00d7${rows} grid, ${cols * rows} slots. All previous drawings cleared.`;
     submitBtn.textContent = 'Update image & reset mosaic';
     seedSection.hidden = false;
   });
@@ -262,30 +396,98 @@ export function renderAdmin(container) {
   seedBtn.addEventListener('click', async () => {
     if (!getImage()?.dataUrl) return;
     seedBtn.disabled = true;
-    seedStatus.textContent = 'Seeding…';
+    seedStatus.textContent = 'Seeding\u2026';
     const emptyCount = Math.max(0, parseInt(emptyInput.value) || 0);
     await seedMosaic(emptyCount, (n, total) => {
-      seedStatus.textContent = `Seeding… ${n} / ${total}`;
+      seedStatus.textContent = `Seeding\u2026 ${n} / ${total}`;
     });
     seedStatus.textContent = 'Done!';
     seedBtn.disabled = false;
   });
 
-  // Refresh current info if another client sets an image
+  // ── Event listeners ─────────────────────────────────────────────────────────
+
   const onImageSet = () => {
-    const img = getImage();
-    currentInfo.textContent = img
-      ? `Active: ${img.cols}×${img.rows} grid · ${img.cols * img.rows} slots`
-      : 'No reference image set.';
-    seedSection.hidden = !img?.dataUrl;
+    updateSessionInfo();
+    seedSection.hidden = !getImage()?.dataUrl;
+    renderDrawingsGrid();
   };
+  const onDrawingUpdate = () => {
+    updateSessionInfo();
+    renderDrawingsGrid();
+  };
+
   window.addEventListener('qart:image-set', onImageSet);
+  window.addEventListener('qart:init', onDrawingUpdate);
+  window.addEventListener('qart:new-drawing', onDrawingUpdate);
+  window.addEventListener('qart:cleared', onDrawingUpdate);
+  window.addEventListener('qart:drawing-deleted', onDrawingUpdate);
 
   return () => {
     window.removeEventListener('qart:image-set', onImageSet);
+    window.removeEventListener('qart:init', onDrawingUpdate);
+    window.removeEventListener('qart:new-drawing', onDrawingUpdate);
+    window.removeEventListener('qart:cleared', onDrawingUpdate);
+    window.removeEventListener('qart:drawing-deleted', onDrawingUpdate);
     container.innerHTML = '';
   };
 }
+
+// ── PIN gate component ────────────────────────────────────────────────────────
+
+function renderPinGate(container, onSuccess) {
+  const h1 = document.createElement('h1');
+  h1.className = 'page-title';
+  h1.textContent = 'Admin PIN';
+  container.appendChild(h1);
+
+  const desc = document.createElement('p');
+  desc.className = 'admin-current';
+  desc.textContent = 'Enter the admin PIN to access session settings.';
+  container.appendChild(desc);
+
+  const form = document.createElement('form');
+  form.className = 'admin-form';
+
+  const pinInput = document.createElement('input');
+  pinInput.type = 'text';
+  pinInput.inputMode = 'numeric';
+  pinInput.pattern = '[0-9]*';
+  pinInput.maxLength = 4;
+  pinInput.className = 'landing-input';
+  pinInput.placeholder = '4-digit PIN';
+  pinInput.setAttribute('aria-label', 'Admin PIN');
+  pinInput.autocomplete = 'off';
+  form.appendChild(pinInput);
+
+  const submitBtn = document.createElement('button');
+  submitBtn.type = 'submit';
+  submitBtn.className = 'btn btn--primary';
+  submitBtn.textContent = 'Enter';
+  form.appendChild(submitBtn);
+
+  const status = document.createElement('p');
+  status.className = 'draw-status';
+  status.setAttribute('role', 'status');
+  status.setAttribute('aria-live', 'polite');
+  form.appendChild(status);
+
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const val = pinInput.value.trim();
+    if (!val) return;
+
+    // Validate by trying to get session info — the PIN is validated server-side
+    // on actual admin actions. For the gate, just store it and proceed.
+    setAdminPin(val);
+    onSuccess();
+  });
+
+  container.appendChild(form);
+  pinInput.focus();
+}
+
+// ── Image resize helper ──────────────────────────────────────────────────────
 
 function resizeImage(file, maxDim) {
   return new Promise(resolve => {
