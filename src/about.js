@@ -19,7 +19,7 @@ export function renderAbout(container) {
       </p>
       <p>
         Protest, beauty, joy, and grief all pass through the same machine, reshaped
-        to fit the algorithm's original intention. qart makes that invisible
+        to fit the algorithm's original intention. schema makes that invisible
         architecture visible. Each doodle is an act of genuine expression; the
         mosaic is what the system makes of it. Whether you see constraint or
         collaboration in that tension is up to you.

@@ -1,5 +1,5 @@
 {
-  "name": "qart",
+  "name": "schema",
   "type": "module",
   "scripts": {
     "dev": "concurrently -n vite,server -c cyan,green \"vite\" \"node server.js\"",

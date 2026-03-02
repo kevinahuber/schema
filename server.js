@@ -11,7 +11,7 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const DIST = path.join(__dirname, 'dist');
 const DATA_DIR = path.join(__dirname, 'data');
-const DB_PATH = path.join(DATA_DIR, 'qart.db');
+const DB_PATH = path.join(DATA_DIR, 'schema.db');
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -474,7 +474,7 @@ server.listen(PORT, '0.0.0.0', () => {
     .map(n => n.address);
 
   const sessionCount = db.prepare('SELECT COUNT(*) as count FROM sessions').get().count;
-  console.log(`\nqart server running (${sessionCount} session(s))\n`);
+  console.log(`\nschema server running (${sessionCount} session(s))\n`);
   console.log(`  Local:    http://localhost:${PORT}`);
   ips.forEach(ip => console.log(`  Network:  http://${ip}:${PORT}`));
   console.log('\n  Share the Network URL with visitors.\n');

@@ -202,7 +202,7 @@ export function renderDraw(container) {
 
   function applySlotBackground() {
     const img = getImage();
-    if (localStorage.getItem('qart:show-bg') !== 'true' || !img?.dataUrl || assignedSlot == null) {
+    if (localStorage.getItem('schema:show-bg') !== 'true' || !img?.dataUrl || assignedSlot == null) {
       canvas.style.backgroundImage = '';
       canvas.style.backgroundSize = '';
       canvas.style.backgroundPositionX = '';
@@ -231,7 +231,7 @@ export function renderDraw(container) {
   }
 
   const onSlotAssigned = async e => {
-    window.removeEventListener('qart:slot-assigned', onSlotAssigned);
+    window.removeEventListener('schema:slot-assigned', onSlotAssigned);
     assignedSlot = e.detail.slotIndex;
 
     const img = getImage();
@@ -259,7 +259,7 @@ export function renderDraw(container) {
     }
   };
 
-  window.addEventListener('qart:slot-assigned', onSlotAssigned);
+  window.addEventListener('schema:slot-assigned', onSlotAssigned);
   initPalette();
 
   // ── Post handler ───────────────────────────────────────────────────────────
@@ -282,7 +282,7 @@ export function renderDraw(container) {
       postBtn.textContent = 'Post it';
       status.textContent = '';
       initPalette();
-      window.addEventListener('qart:slot-assigned', onSlotAssigned);
+      window.addEventListener('schema:slot-assigned', onSlotAssigned);
     }, 2000);
   });
 
@@ -328,7 +328,7 @@ export function renderDraw(container) {
   canvas.addEventListener('touchend', stopDraw);
 
   return () => {
-    window.removeEventListener('qart:slot-assigned', onSlotAssigned);
+    window.removeEventListener('schema:slot-assigned', onSlotAssigned);
     container.innerHTML = '';
   };
 }

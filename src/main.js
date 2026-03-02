@@ -12,7 +12,7 @@ const navToggle = document.getElementById('nav-toggle');
 const navMenu = document.getElementById('nav-menu');
 const navFloat = document.querySelector('.nav-float');
 
-window.addEventListener('qart:ws-status', e => {
+window.addEventListener('schema:ws-status', e => {
   statusDot.dataset.connected = e.detail.connected;
   statusDot.title = e.detail.connected ? 'Connected' : 'Reconnecting…';
 });

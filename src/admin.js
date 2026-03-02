@@ -157,9 +157,9 @@ export function renderAdmin(container) {
   bgToggleLabel.className = 'admin-toggle';
   const bgCheckbox = document.createElement('input');
   bgCheckbox.type = 'checkbox';
-  bgCheckbox.checked = localStorage.getItem('qart:show-bg') === 'true';
+  bgCheckbox.checked = localStorage.getItem('schema:show-bg') === 'true';
   bgCheckbox.addEventListener('change', () => {
-    localStorage.setItem('qart:show-bg', bgCheckbox.checked);
+    localStorage.setItem('schema:show-bg', bgCheckbox.checked);
   });
   const bgToggleSpan = document.createElement('span');
   bgToggleSpan.textContent = 'Show reference image on draw page';
@@ -436,18 +436,18 @@ export function renderAdmin(container) {
     renderDrawingsGrid();
   };
 
-  window.addEventListener('qart:image-set', onImageSet);
-  window.addEventListener('qart:init', onDrawingUpdate);
-  window.addEventListener('qart:new-drawing', onDrawingUpdate);
-  window.addEventListener('qart:cleared', onDrawingUpdate);
-  window.addEventListener('qart:drawing-deleted', onDrawingUpdate);
+  window.addEventListener('schema:image-set', onImageSet);
+  window.addEventListener('schema:init', onDrawingUpdate);
+  window.addEventListener('schema:new-drawing', onDrawingUpdate);
+  window.addEventListener('schema:cleared', onDrawingUpdate);
+  window.addEventListener('schema:drawing-deleted', onDrawingUpdate);
 
   return () => {
-    window.removeEventListener('qart:image-set', onImageSet);
-    window.removeEventListener('qart:init', onDrawingUpdate);
-    window.removeEventListener('qart:new-drawing', onDrawingUpdate);
-    window.removeEventListener('qart:cleared', onDrawingUpdate);
-    window.removeEventListener('qart:drawing-deleted', onDrawingUpdate);
+    window.removeEventListener('schema:image-set', onImageSet);
+    window.removeEventListener('schema:init', onDrawingUpdate);
+    window.removeEventListener('schema:new-drawing', onDrawingUpdate);
+    window.removeEventListener('schema:cleared', onDrawingUpdate);
+    window.removeEventListener('schema:drawing-deleted', onDrawingUpdate);
     container.innerHTML = '';
   };
 }

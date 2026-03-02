@@ -135,7 +135,7 @@ function makeDrawing(img, slotIndex, cols, rows) {
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext('2d');
 
-  if (localStorage.getItem('qart:show-bg') === 'true') {
+  if (localStorage.getItem('schema:show-bg') === 'true') {
     ctx.drawImage(img, col*slotW, row*slotH, slotW, slotH, 0, 0, W, H);
   }
 

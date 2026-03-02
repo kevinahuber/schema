@@ -7,7 +7,7 @@ export function renderLanding(container) {
 
   const h1 = document.createElement('h1');
   h1.className = 'landing-title';
-  h1.textContent = 'qart';
+  h1.textContent = 'schema';
   hero.appendChild(h1);
 
   const tagline = document.createElement('p');
@@ -116,7 +116,7 @@ export function renderLanding(container) {
       }
 
       const { slug, adminPin } = await res.json();
-      localStorage.setItem(`qart:pin:${slug}`, adminPin);
+      localStorage.setItem(`schema:pin:${slug}`, adminPin);
       location.href = `/s/${slug}#admin`;
     } catch (err) {
       status.textContent = err.message;

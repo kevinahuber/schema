@@ -24,7 +24,7 @@ function connect() {
   ws.addEventListener('open', () => {
     ready = true;
     queue.splice(0).forEach(m => ws.send(JSON.stringify(m)));
-    window.dispatchEvent(new CustomEvent('qart:ws-status', { detail: { connected: true } }));
+    window.dispatchEvent(new CustomEvent('schema:ws-status', { detail: { connected: true } }));
   });
 
   ws.addEventListener('message', e => {
@@ -34,38 +34,38 @@ function connect() {
     if (msg.type === 'init') {
       drawings = msg.drawings;
       session = msg.session ?? null;
-      window.dispatchEvent(new CustomEvent('qart:init'));
+      window.dispatchEvent(new CustomEvent('schema:init'));
     }
 
     if (msg.type === 'drawing') {
       drawings.push(msg.drawing);
-      window.dispatchEvent(new CustomEvent('qart:new-drawing', { detail: msg.drawing }));
+      window.dispatchEvent(new CustomEvent('schema:new-drawing', { detail: msg.drawing }));
     }
 
     if (msg.type === 'cleared') {
       drawings = [];
-      window.dispatchEvent(new CustomEvent('qart:cleared'));
+      window.dispatchEvent(new CustomEvent('schema:cleared'));
     }
 
     if (msg.type === 'image-set') {
       session = msg.session;
       drawings = [];
-      window.dispatchEvent(new CustomEvent('qart:image-set', { detail: session }));
+      window.dispatchEvent(new CustomEvent('schema:image-set', { detail: session }));
     }
 
     if (msg.type === 'slot-assigned') {
-      window.dispatchEvent(new CustomEvent('qart:slot-assigned', { detail: msg }));
+      window.dispatchEvent(new CustomEvent('schema:slot-assigned', { detail: msg }));
     }
 
     if (msg.type === 'drawing-deleted') {
       drawings = drawings.filter(d => d.id !== msg.drawingId);
-      window.dispatchEvent(new CustomEvent('qart:drawing-deleted', { detail: msg.drawingId }));
+      window.dispatchEvent(new CustomEvent('schema:drawing-deleted', { detail: msg.drawingId }));
     }
   });
 
   ws.addEventListener('close', () => {
     ready = false;
-    window.dispatchEvent(new CustomEvent('qart:ws-status', { detail: { connected: false } }));
+    window.dispatchEvent(new CustomEvent('schema:ws-status', { detail: { connected: false } }));
     setTimeout(connect, 2000);
   });
 
@@ -80,11 +80,11 @@ function send(msg) {
 // ── Admin PIN ─────────────────────────────────────────────────────────────────
 
 export function getAdminPin() {
-  return slug ? localStorage.getItem(`qart:pin:${slug}`) : null;
+  return slug ? localStorage.getItem(`schema:pin:${slug}`) : null;
 }
 
 export function setAdminPin(pin) {
-  if (slug) localStorage.setItem(`qart:pin:${slug}`, pin);
+  if (slug) localStorage.setItem(`schema:pin:${slug}`, pin);
 }
 
 function sendAdmin(msg) {

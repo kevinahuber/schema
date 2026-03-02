@@ -228,11 +228,11 @@ export function renderMosaic(container) {
     renderGrid();
     startAutoPlay();
   };
-  window.addEventListener('qart:init', onInit);
-  window.addEventListener('qart:new-drawing', onUpdate);
-  window.addEventListener('qart:cleared', onUpdate);
-  window.addEventListener('qart:image-set', onUpdate);
-  window.addEventListener('qart:drawing-deleted', onUpdate);
+  window.addEventListener('schema:init', onInit);
+  window.addEventListener('schema:new-drawing', onUpdate);
+  window.addEventListener('schema:cleared', onUpdate);
+  window.addEventListener('schema:image-set', onUpdate);
+  window.addEventListener('schema:drawing-deleted', onUpdate);
 
   // Re-layout on resize so the grid always fills the viewport correctly
   const ro = new ResizeObserver(renderGrid);
@@ -242,11 +242,11 @@ export function renderMosaic(container) {
     ro.disconnect();
     if (autoPlay) { clearInterval(autoPlay); autoPlay = null; }
     document.body.classList.remove('mosaic-active');
-    window.removeEventListener('qart:init', onInit);
-    window.removeEventListener('qart:new-drawing', onUpdate);
-    window.removeEventListener('qart:cleared', onUpdate);
-    window.removeEventListener('qart:image-set', onUpdate);
-    window.removeEventListener('qart:drawing-deleted', onUpdate);
+    window.removeEventListener('schema:init', onInit);
+    window.removeEventListener('schema:new-drawing', onUpdate);
+    window.removeEventListener('schema:cleared', onUpdate);
+    window.removeEventListener('schema:image-set', onUpdate);
+    window.removeEventListener('schema:drawing-deleted', onUpdate);
     const slot = document.getElementById('nav-slider-slot');
     if (slot && slot.contains(sliderBar)) slot.removeChild(sliderBar);
     container.innerHTML = '';
